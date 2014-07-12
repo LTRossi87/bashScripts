@@ -1,0 +1,49 @@
+echo "Starting install_java script"
+
+## Install Oracle Java $JAVA_VERSION
+##
+## Installs Oracle Java $JAVA_VERSION if the version is not already installed on the machine
+##
+## @param $1 The version number of java to install 7, 8
+## @pre Java $1 should not be installed
+## @post Oracle Java $JAVA_VERSION will be installed on the machine
+install_java () {
+  
+  ## Check to see if java$JAVA_VERSION is installed
+  ## Get the path to Java $JAVA_VERSION
+  echo "Checking if Java $JAVA_VERSION is installed"
+  JAVA_PATH="/usr/lib/jvm/java-$JAVA_VERSION-oracle"
+  JAVA_VERSION="$1"
+  if [[ ! -d "$JAVA_PATH" ]]; then
+    
+    echo "Java $JAVA_VERSION is not installed"
+    echo "Adding the repository for Java $JAVA_VERSION From Oracle"
+    sudo add-apt-repository -y ppa:webupd$JAVA_VERSIONteam/java
+
+    ## Preform an update
+    echo "Updating the system"
+    sudo apt-get -y update
+
+    ## Accept the Oracle License Agreement
+    echo "Setting up the sysstem to auto accept the Oracle License Agreement"
+    echo oracle-java$JAVA_VERSION-installer shared/accepted-oracle-license-v1-1 select true | sudo /usr/bin/debconf-set-selections
+
+    ## Install Java $JAVA_VERSION
+    echo "Installing java-$JAVA_VERSION-oracle"
+    sudo apt-get -y install oracle-java$JAVA_VERSION-installer
+
+    echo "Checking java $JAVA_VERSION install at $JAVA_PATH"
+      if [[ ! -d "$JAVA_PATH" ]]; then
+          echo "No such directory $JAVA_PATH"
+          exit 1
+      fi
+  else
+    echo "Java $JAVA_VERSION is already installed on this machine"
+    exit 0
+  fi
+}
+
+echo "Calling install_java"
+install_java "8"
+
+echo "Finishing install_java script"

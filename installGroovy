@@ -1,0 +1,91 @@
+echo "Starting installGroovy script"
+
+## Generate the ghost-groovy.sh file
+##
+## The ghost-groovy.sh file will be symlinked to /usr/local/bin/groovy.
+## This is used so that groovy scripts can be run using the groovy command 
+create_GHOST_groovy_sh_file () {
+	GHOST_GROOVY_SH="$HOME/Programs/groovy/bin/ghost-groovy.sh"
+	SYMBOLIC_LINK_PATH="/usr/local/bin/groovy"
+	JAVA_VERSION_NUMBER="8"
+	JAVA_HOME_PATH="/usr/lib/jvm/java-$JAVA_VERSION_NUMBER-oracle"
+	echo "Checking for $GHOST_GROOVY_SH"
+	if [[ ! -f  "$GHOST_GROOVY_SH" ]]; then
+		echo "Creating $GHOST_GROOVY_SH and writing to it"
+		cat << EOF > "$GHOST_GROOVY_SH"
+#!/bin/bash
+GROOVY_HOME=$HOME/Programs/groovy
+\$GROOVY_HOME/bin/groovy \$@
+EOF
+		echo "Changing $GHOST_GROOVY_SH file permissions"
+		chmod +x "$GHOST_GROOVY_SH"
+		echo "Creating a symbolic link to $GHOST_GROOVY_SH at /usr/local/bin/groovy"
+		if [[ -f "$SYMBOLIC_LINK_PATH" ]]; then
+			rm "$SYMBOLIC_LINK_PATH"
+		fi
+		sudo ln -s "$GHOST_GROOVY_SH" "$SYMBOLIC_LINK_PATH" 
+	fi
+}
+
+check_for_java_install () {
+	PATH_TO_JAVA="/usr/lib/jvm/java-8-oracle"
+	CURRENT_DIR="$(dirname "$0")"
+	if [[ ! -f ${PATH_TO_JAVA} ]]; then
+		$CURRENT_DIR/installJava
+	else
+		echo "Java is already installed"
+		echo "Make sure that the installJava script is $CURRENT_DIR"
+		exit 1
+	fi
+}
+
+## Install groovy
+## 
+## Installs groovy to $HOME/Programs/groovy
+## Also checks for Oracle 
+install_groovy () {
+	TEMP_DIR=$(mktemp -dt "install_groovy.XXXXX")
+	TEMP_GROOVY_FILE="$TEMP_DIR/groovy.zip"
+	URL="http://dl.bintray.com/groovy/maven/groovy-binary-2.3.4.zip"
+	GROOVY_VERSION="2.3.4"
+	echo "Calling check_for_java_install from installGroovy script"
+	check_for_java_install
+	echo "Checking for $HOME/Programs/groovy"
+	if [[ ! -n  $(which groovy) ]]; then
+		if [[ ! -d "$HOME/Programs" ]]; then
+			echo "Making $HOME/Programs"
+			mkdir "$HOME/Programs"
+		fi
+		echo "Fetching groovy from $URL"
+		wget  "$URL" -O "$TEMP_GROOVY_FILE"
+		echo "Unzipping $TEMP_GROOVY_FILE to $HOME/Programs"
+		unzip "$TEMP_GROOVY_FILE" -d "$TEMP_DIR"
+		echo "Copying $TEMP_GROOVY_FILE/groovy-$GROOVY_VERSION to $HOME/Programs/groovy"
+		mv "$TEMP_DIR/groovy-$GROOVY_VERSION" "$HOME/Programs/groovy"
+		echo "Removing temporary files and directories"
+		rm "$TEMP_GROOVY_FILE"
+		rmdir "$TEMP_DIR"
+		echo "Calling create_GHOST_groovy_sh_file from installGroovy script"
+		create_GHOST_groovy_sh_file "$HOME/Programs"
+	else
+		echo "Groovy is already installed"
+		exit 0
+	fi	
+}
+
+## Install unzip
+##
+## unzip will be used to extract groovy after download
+install_unzip () {
+	echo "Checking for unzip"
+	if [ -z $(which unzip) ]; then
+		echo "unzip Is Not Installed: Installing unzip" 
+		sudo apt-get -y install unzip
+	fi
+}
+
+echo "Calling install_unzip from installGroovy script"
+install_unzip
+echo "Calling install_groovy from installGroovy script"
+install_groovy
+echo "Finishing installGroovy script"
